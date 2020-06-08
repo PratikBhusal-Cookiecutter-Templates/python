@@ -1,0 +1,12 @@
+{
+  "full_name": "Pratik Bhusal",
+  "email": "{{ cookiecutter.full_name.replace(' ', '') + '@users.noreply.github.com' }}",
+  "github_username": "{{ cookiecutter.full_name.replace(' ', '') }}",
+  "project_name": "My Python Package",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+  "project_short_description": "A python package that does something cool.",
+  "version": "0.1.0",
+  "command_line_interface": ["Click", "Argparse", "No CLI"],
+  "create_author_file": "y",
+  "license": ["MIT license", "Apache 2.0 License", "None"]
+}
