@@ -38,13 +38,13 @@ import shlex
 import subprocess
 import sys
 from contextlib import contextmanager
-from typing import Iterable, Iterator
+from typing import Dict, Iterable, Iterator, Tuple
 
 # import yaml
 from click.testing import CliRunner
 from cookiecutter.utils import rmtree
 from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
-from pytest_cookies.plugin import Cookies
+from pytest_cookies.plugin import Cookies, Result
 
 
 @contextmanager
@@ -98,11 +98,11 @@ def test_year_compute_in_license_file(cookies: Cookies) -> None:
         assert str(now.year) in license_file_path.read()
 
 
-def project_info(result):
+def project_info(result: Result) -> Tuple[str, str, str]:
     """Get toplevel dir, project_slug, and project dir from baked cookies"""
     project_path = str(result.project)
     project_slug = os.path.split(project_path)[-1]
-    project_dir = os.path.join(project_path, project_slug)
+    project_dir = os.path.join(project_path, "src", project_slug)
     return project_path, project_slug, project_dir
 
 
@@ -170,26 +170,23 @@ def project_info(result):
 
 def test_bake_selecting_license(cookies: Cookies) -> None:
     license_strings = {
-        'MIT License': 'MIT ',
+        'MIT License': 'MIT',
         'Apache 2.0 License': 'Licensed under the Apache License, Version 2.0',
     }
     for license, target_string in license_strings.items():
         with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
             assert target_string in result.project.join('LICENSE').read()
-            # assert license in result.project.join('setup.py').read()
+            assert license in result.project.join('setup.py').read()
 
 
-def test_bake_not_open_source(cookies: Cookies) -> None:
+def test_bake_other_license(cookies: Cookies) -> None:
     with bake_in_temp_dir(cookies, extra_context={"license": "Other"}) as result:
         found_toplevel_files: Iterable[str] = [
             f.basename for f in result.project.listdir()
         ]
-        # assert 'setup.py' in found_toplevel_files
-        try:
-            assert 'LICENSE' not in found_toplevel_files
-        except AssertionError:
-            assert not result.project.join('LICENSE').read()
-        # assert 'License' not in result.project.join('README.rst').read()
+        assert 'setup.py' in found_toplevel_files
+        assert 'LICENSE' not in found_toplevel_files
+        assert 'License' not in result.project.join('README.markdown').read()
 
 
 # def test_using_pytest(cookies):
@@ -225,40 +222,40 @@ def test_bake_not_open_source(cookies: Cookies) -> None:
 #         "missing password config in .travis.yml"
 
 
-# def test_bake_with_no_console_script(cookies):
-#     context = {'command_line_interface': "No command-line interface"}
-#     result = cookies.bake(extra_context=context)
-#     project_path, project_slug, project_dir = project_info(result)
-#     found_project_files = os.listdir(project_dir)
-#     assert "cli.py" not in found_project_files
+def test_bake_with_no_console_script(cookies: Cookies) -> None:
+    context: Dict[str, str] = {'command_line_interface': "None"}
+    result: Result = cookies.bake(extra_context=context)
+    project_path, _, project_dir = project_info(result)
+    found_project_files: Iterable[str] = os.listdir(project_dir)
+    assert "cli.py" not in found_project_files
 
-#     setup_path = os.path.join(project_path, 'setup.py')
-#     with open(setup_path, 'r') as setup_file:
-#         assert 'entry_points' not in setup_file.read()
-
-
-# def test_bake_with_console_script_files(cookies):
-#     context = {'command_line_interface': 'click'}
-#     result = cookies.bake(extra_context=context)
-#     project_path, project_slug, project_dir = project_info(result)
-#     found_project_files = os.listdir(project_dir)
-#     assert "cli.py" in found_project_files
-
-#     setup_path = os.path.join(project_path, 'setup.py')
-#     with open(setup_path, 'r') as setup_file:
-#         assert 'entry_points' in setup_file.read()
+    setup_path: str = os.path.join(project_path, 'setup.py')
+    with open(setup_path, 'r') as setup_file:
+        assert 'entry_points' not in setup_file.read()
 
 
-# def test_bake_with_argparse_console_script_files(cookies):
-#     context = {'command_line_interface': 'argparse'}
-#     result = cookies.bake(extra_context=context)
-#     project_path, project_slug, project_dir = project_info(result)
-#     found_project_files = os.listdir(project_dir)
-#     assert "cli.py" in found_project_files
+def test_bake_with_click_console_script_files(cookies: Cookies) -> None:
+    context: Dict[str, str] = {'command_line_interface': 'click'}
+    result: Result = cookies.bake(extra_context=context)
+    project_path, _, project_dir = project_info(result)
+    found_project_files: Iterable[str] = os.listdir(project_dir)
+    assert "cli.py" in found_project_files
 
-#     setup_path = os.path.join(project_path, 'setup.py')
-#     with open(setup_path, 'r') as setup_file:
-#         assert 'entry_points' in setup_file.read()
+    setup_path: str = os.path.join(project_path, 'setup.py')
+    with open(setup_path, 'r') as setup_file:
+        assert 'entry_points' in setup_file.read()
+
+
+def test_bake_with_argparse_console_script_files(cookies: Cookies) -> None:
+    context: Dict[str, str] = {'command_line_interface': 'argparse'}
+    result: Result = cookies.bake(extra_context=context)
+    project_path, _, project_dir = project_info(result)
+    found_project_files: Iterable[str] = os.listdir(project_dir)
+    assert "cli.py" in found_project_files
+
+    setup_path: str = os.path.join(project_path, 'setup.py')
+    with open(setup_path, 'r') as setup_file:
+        assert 'entry_points' in setup_file.read()
 
 
 # def test_bake_with_console_script_cli(cookies):
