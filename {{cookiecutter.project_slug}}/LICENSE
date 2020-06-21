@@ -1,4 +1,4 @@
-{% if cookiecutter.license == 'MIT license' -%}
+{% if cookiecutter.license == 'MIT License' -%}
 MIT License
 
 Copyright (c) {% now 'local', '%Y' %}, {{ cookiecutter.full_name }}

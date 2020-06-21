@@ -38,14 +38,17 @@ import shlex
 import subprocess
 import sys
 from contextlib import contextmanager
+from typing import Iterable, Iterator
 
-import yaml
+# import yaml
 from click.testing import CliRunner
 from cookiecutter.utils import rmtree
+from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
+from pytest_cookies.plugin import Cookies
 
 
 @contextmanager
-def inside_dir(dirpath):
+def inside_dir(dirpath) -> Iterator[None]:
     """
     Execute code from inside the given directory
     :param dirpath: String, path of the directory the command is being run.
@@ -88,10 +91,10 @@ def check_output_inside_dir(command, dirpath):
         return subprocess.check_output(shlex.split(command))
 
 
-def test_year_compute_in_license_file(cookies):
+def test_year_compute_in_license_file(cookies: Cookies) -> None:
     with bake_in_temp_dir(cookies) as result:
-        license_file_path = result.project.join('LICENSE')
-        now = datetime.datetime.now()
+        license_file_path: LocalPath = result.project.join('LICENSE')
+        now: datetime.datetime = datetime.datetime.now()
         assert str(now.year) in license_file_path.read()
 
 
@@ -165,31 +168,28 @@ def project_info(result):
 #             assert b"check code coverage quickly with the default Python" in output
 
 
-# def test_bake_selecting_license(cookies):
-#     license_strings = {
-#         'MIT license': 'MIT ',
-#         'BSD license': 'Redistributions of source code must retain the '
-#         + 'above copyright notice, this',
-#         'ISC license': 'ISC License',
-#         'Apache Software License 2.0': 'Licensed under the Apache License, Version 2.0',
-#         'GNU General Public License v3': 'GNU GENERAL PUBLIC LICENSE',
-#     }
-#     for license, target_string in license_strings.items():
-#         with bake_in_temp_dir(
-#             cookies, extra_context={'open_source_license': license}
-#         ) as result:
-#             assert target_string in result.project.join('LICENSE').read()
-#             assert license in result.project.join('setup.py').read()
+def test_bake_selecting_license(cookies: Cookies) -> None:
+    license_strings = {
+        'MIT License': 'MIT ',
+        'Apache 2.0 License': 'Licensed under the Apache License, Version 2.0',
+    }
+    for license, target_string in license_strings.items():
+        with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
+            assert target_string in result.project.join('LICENSE').read()
+            # assert license in result.project.join('setup.py').read()
 
 
-# def test_bake_not_open_source(cookies):
-#     with bake_in_temp_dir(
-#         cookies, extra_context={'open_source_license': 'Not open source'}
-#     ) as result:
-#         found_toplevel_files = [f.basename for f in result.project.listdir()]
-#         assert 'setup.py' in found_toplevel_files
-#         assert 'LICENSE' not in found_toplevel_files
-#         assert 'License' not in result.project.join('README.rst').read()
+def test_bake_not_open_source(cookies: Cookies) -> None:
+    with bake_in_temp_dir(cookies, extra_context={"license": "Other"}) as result:
+        found_toplevel_files: Iterable[str] = [
+            f.basename for f in result.project.listdir()
+        ]
+        # assert 'setup.py' in found_toplevel_files
+        try:
+            assert 'LICENSE' not in found_toplevel_files
+        except AssertionError:
+            assert not result.project.join('LICENSE').read()
+        # assert 'License' not in result.project.join('README.rst').read()
 
 
 # def test_using_pytest(cookies):
@@ -202,15 +202,6 @@ def project_info(result):
 #         run_inside_dir('python setup.py pytest', str(result.project)) == 0
 #         # Test the test alias (which invokes pytest)
 #         run_inside_dir('python setup.py test', str(result.project)) == 0
-
-
-# def test_not_using_pytest(cookies):
-#     with bake_in_temp_dir(cookies) as result:
-#         assert result.project.isdir()
-#         test_file_path = result.project.join('tests/test_python_boilerplate.py')
-#         lines = test_file_path.readlines()
-#         assert "import unittest" in ''.join(lines)
-#         assert "import pytest" not in ''.join(lines)
 
 
 # def test_project_with_hyphen_in_module_name(cookies):

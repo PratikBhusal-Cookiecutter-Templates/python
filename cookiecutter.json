@@ -8,5 +8,5 @@
   "version": "0.1.0",
   "command_line_interface": ["Click", "Argparse", "No CLI"],
   "create_author_file": "y",
-  "license": ["MIT license", "Apache 2.0 License", "None"]
+  "license": ["MIT License", "Apache 2.0 License", "Other"]
 }
