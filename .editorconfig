@@ -1,12 +1,11 @@
 root = true
 
 [*]
-indent_style = space
-indent_size = 4
-trim_trailing_whitespace = true
-insert_final_newline = true
 charset = utf-8
 end_of_line = lf
+indent_size = 4
+indent_style = space
+trim_trailing_whitespace = true
 
 [*.bat]
 indent_style = tab
@@ -20,3 +19,7 @@ indent_style = tab
 
 [*.{diff,patch}]
 trim_trailing_whitespace = false
+
+
+[*.rst]
+indent_size = 3

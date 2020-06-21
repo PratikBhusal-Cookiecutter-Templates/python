@@ -30,6 +30,8 @@ author = 'Pratik Bhusal'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
+    'sphinx_rtd_theme',
+    'recommonmark',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -47,13 +49,21 @@ language = 'en'
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# The file extensions of source files. Sphinx considers the files with this suffix
+# as sources. The value can be a dictionary mapping file extensions to file types.
+source_suffix = {
+    '.markdown': 'markdown',
+    '.md': 'markdown',
+    '.rst': 'restructuredtext',
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

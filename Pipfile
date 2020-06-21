@@ -7,5 +7,6 @@ verify_ssl = true
 pytest-cookies = "*"
 sphinx-rtd-theme = "*"
 tox-pipenv = "*"
+recommonmark = "*"
 
 [packages]
