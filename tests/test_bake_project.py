@@ -106,17 +106,20 @@ def project_info(result: Result) -> Tuple[str, str, str]:
     return project_path, project_slug, project_dir
 
 
-# def test_bake_with_defaults(cookies):
-#     with bake_in_temp_dir(cookies) as result:
-#         assert result.project.isdir()
-#         assert result.exit_code == 0
-#         assert result.exception is None
+def test_bake_with_defaults(cookies: Cookies) -> None:
+    with bake_in_temp_dir(cookies) as result:
+        assert result.project.isdir()
+        assert result.exit_code == 0
+        assert result.exception is None
 
-#         found_toplevel_files = [f.basename for f in result.project.listdir()]
-#         assert 'setup.py' in found_toplevel_files
-#         assert 'python_boilerplate' in found_toplevel_files
-#         assert 'tox.ini' in found_toplevel_files
-#         assert 'tests' in found_toplevel_files
+        found_toplevel_files = [f.basename for f in result.project.listdir()]
+        assert 'setup.py' in found_toplevel_files
+        assert 'tox.ini' in found_toplevel_files
+        assert 'tests' in found_toplevel_files
+        assert 'src' in found_toplevel_files
+        assert 'my_python_package' in os.listdir(
+            os.path.join(str(result.project), "src")
+        )
 
 
 # def test_bake_and_run_tests(cookies):
@@ -258,7 +261,7 @@ def test_bake_with_argparse_console_script_files(cookies: Cookies) -> None:
         assert 'entry_points' in setup_file.read()
 
 
-# def test_bake_with_console_script_cli(cookies):
+# def test_bake_with_click_console_script_cli(cookies):
 #     context = {'command_line_interface': 'click'}
 #     result = cookies.bake(extra_context=context)
 #     project_path, project_slug, project_dir = project_info(result)
