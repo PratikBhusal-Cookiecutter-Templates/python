@@ -69,6 +69,7 @@ def bake_in_temp_dir(cookies, *args, **kwargs):
         cookie to be baked and its temporal files will be removed
     """
     result = cookies.bake(*args, **kwargs)
+    # print('=' * 80 + '\n', "Result info:", repr(result), '\n' + ('=' * 80))
     try:
         yield result
     finally:
