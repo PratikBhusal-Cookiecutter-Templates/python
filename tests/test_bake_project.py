@@ -199,18 +199,18 @@ def test_bake_other_license(cookies: Cookies) -> None:
         assert 'License' not in result.project.join('README.markdown').read()
 
 
-# def test_using_pytest(cookies: Cookies) -> None:
-#     with bake_in_temp_dir(cookies, extra_context={'use_pytest': 'y'}) as result:
-#         # Test that the file was properly created
-#         assert result.project.isdir()
-#         test_file_path = result.project.join('tests/test_my_python_package.py')
-#         assert "import pytest" in ''.join(test_file_path.readlines())
+def test_using_pytest(cookies: Cookies) -> None:
+    with bake_in_temp_dir(cookies, extra_context={'use_pytest': 'y'}) as result:
+        # Test that the file was properly created
+        assert result.project.isdir()
+        test_file_path = result.project.join('tests/test_my_python_package.py')
+        assert "import pytest" in ''.join(test_file_path.readlines())
 
-#         # Test the new pytest target
-#         run_inside_dir('python setup.py pytest', str(result.project)) == 0
+        # # Test the new pytest target
+        # run_inside_dir('python setup.py pytest', str(result.project)) == 0
 
-#         # Test the test alias (which invokes pytest)
-#         run_inside_dir('python setup.py test', str(result.project)) == 0
+        # # Test the test alias (which invokes pytest)
+        # run_inside_dir('python setup.py test', str(result.project)) == 0
 
 
 # def test_project_with_hyphen_in_module_name(cookies):
