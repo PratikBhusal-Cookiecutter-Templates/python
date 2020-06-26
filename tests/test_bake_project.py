@@ -41,7 +41,7 @@ from contextlib import contextmanager
 from importlib import util
 from importlib.machinery import ModuleSpec
 from types import ModuleType
-from typing import Any, Dict, Iterable, Iterator, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, Tuple
 
 # import yaml
 from click.testing import CliRunner
@@ -66,7 +66,7 @@ def inside_dir(dirpath) -> Iterator[None]:
 
 
 @contextmanager
-def bake_in_temp_dir(cookies, *args, **kwargs) -> Result:
+def bake_in_temp_dir(cookies: Cookies, *args: Any, **kwargs: Dict[str, str]) -> Result:
     """
     Delete the temporal directory that is created when executing the tests
     :param cookies: pytest_cookies.Cookies,
@@ -179,10 +179,13 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
 
 
 def test_bake_selecting_license(cookies: Cookies) -> None:
-    license_strings = {
+    license_strings: Dict[str, str] = {
         'MIT License': 'MIT',
         'Apache 2.0 License': 'Licensed under the Apache License, Version 2.0',
     }
+
+    license: str
+    target_string: str
     for license, target_string in license_strings.items():
         with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
             assert target_string in result.project.join('LICENSE').read()
@@ -190,6 +193,7 @@ def test_bake_selecting_license(cookies: Cookies) -> None:
 
 
 def test_bake_other_license(cookies: Cookies) -> None:
+    result: Result
     with bake_in_temp_dir(cookies, extra_context={"license": "Other"}) as result:
         found_toplevel_files: Iterable[str] = [
             f.basename for f in result.project.listdir()
@@ -297,5 +301,5 @@ def test_bake_with_click_console_script_cli(cookies: Cookies) -> None:
     helper_bake_with_console_script_cli(cookies, {'command_line_interface': 'click'})
 
 
-# def test_bake_with_argparse_console_script_cli(cookies):
-#     helper_bake_with_console_script_cli(cookies, {'command_line_interface': 'argparse'})
+def test_bake_with_argparse_console_script_cli(cookies: Cookies) -> None:
+    helper_bake_with_console_script_cli(cookies, {'command_line_interface': 'argparse'})
