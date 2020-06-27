@@ -20,6 +20,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
 from pytest_cookies.plugin import Cookies, Result
+from pytest import mark
 
 from helper_functions import project_info
 
@@ -109,6 +110,7 @@ def helper_help_message_cli(cli: ModuleType) -> None:
     assert 'Show this message' in help_result.output
 
 
+@mark.hypothesis
 def test_bake_click_cli(cookies: Cookies) -> None:
     cli: ModuleType = helper_bake__cli_tool(
         cookies, {'command_line_interface': 'click'}
@@ -119,6 +121,7 @@ def test_bake_click_cli(cookies: Cookies) -> None:
     helper_help_message_cli(cli)
 
 
+@mark.hypothesis
 def test_bake_with_argparse__cli(cookies: Cookies) -> None:
     cli: ModuleType = helper_bake__cli_tool(
         cookies, {'command_line_interface': 'argparse'}

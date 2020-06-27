@@ -38,10 +38,11 @@ import sys
 from typing import Dict, Iterable
 
 # import yaml
+from pytest import mark
 from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
 from pytest_cookies.plugin import Cookies, Result
 
-from helper_functions import bake_in_temp_dir, project_info
+from helper_functions import bake_in_temp_dir, project_info, run_inside_dir
 
 
 def test_year_compute_in_license_file(cookies: Cookies) -> None:
@@ -124,6 +125,7 @@ def test_bake_selecting_license(cookies: Cookies) -> None:
 
     license: str
     target_string: str
+    result: Result
     for license, target_string in license_strings.items():
         with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
             assert target_string in result.project.join('LICENSE').read()
@@ -141,15 +143,13 @@ def test_bake_other_license(cookies: Cookies) -> None:
         assert 'License' not in result.project.join('README.markdown').read()
 
 
-def test_using_pytest(cookies: Cookies) -> None:
-    with bake_in_temp_dir(cookies, extra_context={'use_pytest': 'y'}) as result:
+@mark.slow
+def test_using_tox(cookies: Cookies) -> None:
+    result: Result
+    with bake_in_temp_dir(cookies) as result:
         # Test that the file was properly created
         assert result.project.isdir()
         test_file_path = result.project.join('tests/test_my_python_package.py')
-        assert "import pytest" in ''.join(test_file_path.readlines())
+        assert "import pytest" in test_file_path.read()
 
-        # # Test the new pytest target
-        # run_inside_dir('python setup.py pytest', str(result.project)) == 0
-
-        # # Test the test alias (which invokes pytest)
-        # run_inside_dir('python setup.py test', str(result.project)) == 0
+        assert run_inside_dir('tox', str(result.project)) == 0

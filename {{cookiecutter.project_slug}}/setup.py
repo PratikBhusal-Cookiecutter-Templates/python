@@ -5,8 +5,9 @@ from os.path import basename, splitext
 
 from setuptools import find_packages, setup  # type: ignore
 
+long_description: str
 with open("README.markdown", encoding='utf-8') as f:
-    long_description: str = f.read()
+    long_description = f.read()
     print(long_description)
 
 {%- set license_classifiers = {
@@ -47,7 +48,7 @@ setup(
     keywords="",
     long_description_content_type='text/markdown',
     long_description=long_description,
-    name="",
+    name="{{ cookiecutter.project_slug }}",
     package_dir={"": "src"},
     packages=find_packages("src"),
     py_modules=[splitext(basename(path))[0] for path in iglob("src/*.py")],

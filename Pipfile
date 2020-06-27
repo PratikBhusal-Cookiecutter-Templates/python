@@ -5,9 +5,9 @@ verify_ssl = true
 
 [dev-packages]
 pytest-cookies = "*"
-sphinx-rtd-theme = "*"
-tox-pipenv = "*"
-recommonmark = "*"
+# sphinx-rtd-theme = "*"
+# tox = "*"
+# recommonmark = "*"
 hypothesis = "*"
 
 [packages]
