@@ -34,12 +34,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import datetime
 import os
+import shlex
+import subprocess
 import sys
-from typing import Dict, Iterable
+from contextlib import contextmanager
+from importlib import util
+from importlib.machinery import ModuleSpec
+from types import ModuleType
+from typing import Any, Dict, Iterable, Iterator, Tuple
 
 # import yaml
-from pytest import mark
+from click.testing import CliRunner
+from hypothesis import given
+from hypothesis import strategies as st
 from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
+from pytest import mark
 from pytest_cookies.plugin import Cookies, Result
 
 from helper_functions import bake_in_temp_dir, project_info, run_inside_dir
@@ -68,45 +77,38 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
         )
 
 
-# def test_bake_and_run_tests(cookies):
-#     with bake_in_temp_dir(cookies) as result:
-#         assert result.project.isdir()
-#         run_inside_dir('python setup.py test', str(result.project)) == 0
-#         print("test_bake_and_run_tests path", str(result.project))
+@mark.slow
+@mark.parametrize(
+    "context", [{}, {'full_name': 'name "quote" name'}, {'full_name': "O'connor"}]
+)
+def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
+    """Ensure that a `full_name` with double quotes does not break setup.py"""
+    with bake_in_temp_dir(
+        cookies, extra_context={'full_name': 'name "quote" name'}
+    ) as result:
+        assert result.project.isdir()
+        test_file_path = result.project.join('tests/test_my_python_package.py')
+        assert "import pytest" in test_file_path.read()
+
+        run_inside_dir('tox', str(result.project)) == 0
 
 
-# def test_bake_withspecialchars_and_run_tests(cookies):
-#     """Ensure that a `full_name` with double quotes does not break setup.py"""
-#     with bake_in_temp_dir(
-#         cookies, extra_context={'full_name': 'name "quote" name'}
-#     ) as result:
-#         assert result.project.isdir()
-#         run_inside_dir('python setup.py test', str(result.project)) == 0
+def test_bake_without_author_file(cookies: Cookies) -> None:
+    with bake_in_temp_dir(cookies, extra_context={"create_author_file": 'n'}) as result:
+        found_toplevel_files = [f.basename for f in result.project.listdir()]
+        assert 'AUTHORS.rst' not in found_toplevel_files
+        # doc_files = [f.basename for f in result.project.join('docs').listdir()]
+        # assert 'authors.rst' not in doc_files
 
+        # # Assert there are no spaces in the toc tree
+        # docs_index_path = result.project.join('docs/index.rst')
+        # with open(str(docs_index_path)) as index_file:
+        #     assert 'contributing\n   history' in index_file.read()
 
-# def test_bake_with_apostrophe_and_run_tests(cookies):
-#     """Ensure that a `full_name` with apostrophes does not break setup.py"""
-#     with bake_in_temp_dir(cookies, extra_context={'full_name': "O'connor"}) as result:
-#         assert result.project.isdir()
-#         run_inside_dir('python setup.py test', str(result.project)) == 0
-
-
-# def test_bake_without_author_file(cookies):
-#     with bake_in_temp_dir(cookies, extra_context={'create_author_file': 'n'}) as result:
-#         found_toplevel_files = [f.basename for f in result.project.listdir()]
-#         assert 'AUTHORS.rst' not in found_toplevel_files
-#         doc_files = [f.basename for f in result.project.join('docs').listdir()]
-#         assert 'authors.rst' not in doc_files
-
-#         # Assert there are no spaces in the toc tree
-#         docs_index_path = result.project.join('docs/index.rst')
-#         with open(str(docs_index_path)) as index_file:
-#             assert 'contributing\n   history' in index_file.read()
-
-#         # Check that
-#         manifest_path = result.project.join('MANIFEST.in')
-#         with open(str(manifest_path)) as manifest_file:
-#             assert 'AUTHORS.rst' not in manifest_file.read()
+        # # Check that
+        # manifest_path = result.project.join('MANIFEST.in')
+        # with open(str(manifest_path)) as manifest_file:
+        #     assert 'AUTHORS.rst' not in manifest_file.read()
 
 
 # def test_make_help(cookies):
@@ -117,19 +119,24 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
 #             assert b"check code coverage quickly with the default Python" in output
 
 
-def test_bake_selecting_license(cookies: Cookies) -> None:
-    license_strings: Dict[str, str] = {
-        'MIT License': 'MIT',
-        'Apache 2.0 License': 'Licensed under the Apache License, Version 2.0',
-    }
-
+@mark.parametrize(
+    "license_info",
+    [
+        ('MIT', 'MIT'),
+        ('Apache 2.0 License', 'Licensed under the Apache License, Version 2.0'),
+    ],
+)
+def test_bake_selecting_license(
+    cookies: Cookies, license_info: Tuple[str, str]
+) -> None:
     license: str
     target_string: str
     result: Result
-    for license, target_string in license_strings.items():
-        with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
-            assert target_string in result.project.join('LICENSE').read()
-            assert license in result.project.join('setup.py').read()
+
+    license, target_string = license_info
+    with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
+        assert target_string in result.project.join('LICENSE').read()
+        assert license in result.project.join('setup.py').read()
 
 
 def test_bake_other_license(cookies: Cookies) -> None:
@@ -143,13 +150,69 @@ def test_bake_other_license(cookies: Cookies) -> None:
         assert 'License' not in result.project.join('README.markdown').read()
 
 
-@mark.slow
-def test_using_tox(cookies: Cookies) -> None:
-    result: Result
-    with bake_in_temp_dir(cookies) as result:
-        # Test that the file was properly created
-        assert result.project.isdir()
-        test_file_path = result.project.join('tests/test_my_python_package.py')
-        assert "import pytest" in test_file_path.read()
+@mark.parametrize(
+    "args",
+    [
+        ({"command_line_interface": "Click"}, True),
+        ({"command_line_interface": "Argparse"}, True),
+        ({"command_line_interface": "None"}, False),
+    ],
+)
+def test_bake_cli(cookies: Cookies, args: Tuple[Dict[str, str], bool]) -> None:
+    context: Dict[str, str]
+    is_present: bool
+    context, is_present = args
 
-        assert run_inside_dir('tox', str(result.project)) == 0
+    result: Result = cookies.bake(extra_context=context)
+    project_path, _, project_dir = project_info(result)
+    found_project_files: Iterable[str] = os.listdir(project_dir)
+    assert ("cli.py" in found_project_files) == is_present
+
+    setup_path: str = os.path.join(project_path, 'setup.py')
+    with open(setup_path, 'r') as setup_file:
+        assert ('entry_points' in setup_file.read()) == is_present
+
+
+@given(args=st.lists(st.text(alphabet=st.characters(blacklist_characters=['-']))))
+def helper_args_cli(cli: ModuleType, args: Iterable[str]) -> None:
+    runner: CliRunner = CliRunner()
+    noarg_result: Result = runner.invoke(cli.main, args)  # type: ignore
+    try:
+        assert noarg_result.exit_code == 0
+    except AssertionError as e:
+        # print("=" * 80)
+        # print("Reached exception location")
+        # print("Args:", args)
+        # ClickException.show(str(e))
+        # print("=" * 80)
+        print(noarg_result.output)
+        raise e
+    assert str(tuple(args)) == noarg_result.output.strip()
+
+
+@mark.hypothesis
+@mark.parametrize(
+    "context",
+    [{'command_line_interface': 'Click'}, {'command_line_interface': 'argparse'},],
+)
+def test_run_cli(cookies: Cookies, context: Dict[str, str]) -> None:
+    result: Result = cookies.bake(extra_context=context)
+    project_path, project_slug, project_dir = project_info(result)
+    module_path: str = os.path.join(project_dir, 'cli.py')
+    module_name: str = '.'.join([project_slug, 'cli'])
+    spec: ModuleSpec = util.spec_from_file_location(module_name, module_path)
+    cli: ModuleType = util.module_from_spec(spec)
+
+    assert spec.loader is not None
+    spec.loader.exec_module(cli)  # type: ignore
+
+    runner: CliRunner = CliRunner()
+    noarg_result: Result = runner.invoke(cli.main)  # type: ignore
+    assert noarg_result.exit_code == 0
+    assert "()" == noarg_result.output.strip()
+
+    help_result = runner.invoke(cli.main, ['--help'])  # type: ignore
+    assert help_result.exit_code == 0
+    assert 'Show this message' in help_result.output
+
+    helper_args_cli(cli)

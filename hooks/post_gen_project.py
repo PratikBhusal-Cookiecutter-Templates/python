@@ -11,9 +11,9 @@ def remove_file(filepath):
 
 if __name__ == "__main__":
 
-    if "{{ cookiecutter.create_author_file }}" != "y":
-        remove_file("AUTHORS.rst")
-        remove_file("docs/authors.rst")
+    # if "{{ cookiecutter.create_author_file }}" != "y":
+    #     remove_file("AUTHORS.rst")
+    #     remove_file("docs/authors.rst")
 
     if "None" in "{{ cookiecutter.command_line_interface }}":
         remove_file(os.path.join("src", "{{ cookiecutter.project_slug }}", "cli.py"))
