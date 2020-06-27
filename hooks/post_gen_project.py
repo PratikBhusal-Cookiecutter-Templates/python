@@ -16,8 +16,10 @@ if __name__ == "__main__":
         remove_file("docs/authors.rst")
 
     if "None" in "{{ cookiecutter.command_line_interface }}":
-        cli_file = os.path.join("src", "{{ cookiecutter.project_slug }}", "cli.py")
-        remove_file(cli_file)
+        remove_file(os.path.join("src", "{{ cookiecutter.project_slug }}", "cli.py"))
+        remove_file(
+            os.path.join("src", "{{ cookiecutter.project_slug }}", "__main__.py")
+        )
 
     if "Other" == "{{ cookiecutter.license }}":
         remove_file("LICENSE")
