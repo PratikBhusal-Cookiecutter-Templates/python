@@ -52,8 +52,6 @@ setup(
     packages=find_packages("src"),
     py_modules=[splitext(basename(path))[0] for path in iglob("src/*.py")],
     python_requires=">=3.6",
-    setup_requires=["pytest-runner"],
-    tests_require=["pytest"],
     test_suite="tests",
     url="",
     version="0.0.0",
