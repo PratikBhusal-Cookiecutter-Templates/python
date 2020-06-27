@@ -61,6 +61,6 @@ parser.add_argument('args', metavar='Arguments', nargs=argparse.ZERO_OR_MORE,
 
 
 def main(args: Optional[Iterable[str]] = None) -> None:
-    args = parser.parse_args(args=args)
-    print(args.names)
+    arguments = parser.parse_args(args=args)
+    print(arguments.args)
 {%- endif %}

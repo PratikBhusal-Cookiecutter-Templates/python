@@ -8,5 +8,6 @@ pytest-cookies = "*"
 sphinx-rtd-theme = "*"
 tox-pipenv = "*"
 recommonmark = "*"
+hypothesis = "*"
 
 [packages]

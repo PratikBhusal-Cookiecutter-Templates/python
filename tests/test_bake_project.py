@@ -34,68 +34,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import datetime
 import os
-import shlex
-import subprocess
 import sys
-from contextlib import contextmanager
-from importlib import util
-from importlib.machinery import ModuleSpec
-from types import ModuleType
-from typing import Any, Dict, Iterable, Iterator, Tuple
+from typing import Dict, Iterable
 
 # import yaml
-from click.testing import CliRunner
-from cookiecutter.utils import rmtree
 from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
 from pytest_cookies.plugin import Cookies, Result
 
-
-@contextmanager
-def inside_dir(dirpath) -> Iterator[None]:
-    """
-    Execute code from inside the given directory
-    :param dirpath: String, path of the directory the command is being run.
-    """
-    # print(type(dirpath))
-    old_path = os.getcwd()
-    try:
-        os.chdir(dirpath)
-        yield
-    finally:
-        os.chdir(old_path)
-
-
-@contextmanager
-def bake_in_temp_dir(cookies: Cookies, *args: Any, **kwargs: Dict[str, str]) -> Result:
-    """
-    Delete the temporal directory that is created when executing the tests
-    :param cookies: pytest_cookies.Cookies,
-        cookie to be baked and its temporal files will be removed
-    """
-    result = cookies.bake(*args, **kwargs)
-    # print('=' * 80 + '\n', "Result info:", repr(result), '\n' + ('=' * 80))
-    try:
-        yield result
-    finally:
-        rmtree(str(result.project))
-
-
-def run_inside_dir(command: str, dirpath: str):
-    """
-    Run a command from inside a given directory, returning the exit status
-    :param command: Command that will be executed
-    :param dirpath: String, path of the directory the command is being run.
-    """
-    with inside_dir(dirpath):
-        return_val = subprocess.check_call(shlex.split(command))
-        # print(type(return_val))
-        return return_val
-
-
-def check_output_inside_dir(command, dirpath):
-    "Run a command from inside a given directory, returning the command output"
-    with inside_dir(dirpath):
-        return subprocess.check_output(shlex.split(command))
+from helper_functions import bake_in_temp_dir, project_info
 
 
 def test_year_compute_in_license_file(cookies: Cookies) -> None:
@@ -103,14 +49,6 @@ def test_year_compute_in_license_file(cookies: Cookies) -> None:
         license_file_path: LocalPath = result.project.join('LICENSE')
         now: datetime.datetime = datetime.datetime.now()
         assert str(now.year) in license_file_path.read()
-
-
-def project_info(result: Result) -> Tuple[str, str, str]:
-    """Get toplevel dir, project_slug, and project dir from baked cookies"""
-    project_path = str(result.project)
-    project_slug = os.path.split(project_path)[-1]
-    project_dir = os.path.join(project_path, "src", project_slug)
-    return project_path, project_slug, project_dir
 
 
 def test_bake_with_defaults(cookies: Cookies) -> None:
@@ -215,70 +153,3 @@ def test_using_pytest(cookies: Cookies) -> None:
 
         # # Test the test alias (which invokes pytest)
         # run_inside_dir('python setup.py test', str(result.project)) == 0
-
-
-def test_bake_with_no_console_script(cookies: Cookies) -> None:
-    context: Dict[str, str] = {'command_line_interface': "None"}
-    result: Result = cookies.bake(extra_context=context)
-    project_path, _, project_dir = project_info(result)
-    found_project_files: Iterable[str] = os.listdir(project_dir)
-    assert "cli.py" not in found_project_files
-
-    setup_path: str = os.path.join(project_path, 'setup.py')
-    with open(setup_path, 'r') as setup_file:
-        assert 'entry_points' not in setup_file.read()
-
-
-def helper_bake_with_console_script_files(
-    cookies: Cookies, context: Dict[str, str]
-) -> None:
-    result: Result = cookies.bake(extra_context=context)
-    project_path, _, project_dir = project_info(result)
-    found_project_files: Iterable[str] = os.listdir(project_dir)
-    assert "cli.py" in found_project_files
-
-    setup_path: str = os.path.join(project_path, 'setup.py')
-    with open(setup_path, 'r') as setup_file:
-        assert 'entry_points' in setup_file.read()
-
-
-def test_bake_with_click_console_script_files(cookies: Cookies) -> None:
-    helper_bake_with_console_script_files(cookies, {'command_line_interface': 'click'})
-
-
-def test_bake_with_argparse_console_script_files(cookies: Cookies) -> None:
-    helper_bake_with_console_script_files(
-        cookies, {'command_line_interface': 'argparse'}
-    )
-
-
-def helper_bake_with_console_script_cli(
-    cookies: Cookies, context: Dict[str, str]
-) -> None:
-    result: Result = cookies.bake(extra_context=context)
-    project_path, project_slug, project_dir = project_info(result)
-    module_path: str = os.path.join(project_dir, 'cli.py')
-    module_name: str = '.'.join([project_slug, 'cli'])
-    spec: ModuleSpec = util.spec_from_file_location(module_name, module_path)
-    cli: ModuleType = util.module_from_spec(spec)
-
-    assert spec.loader is not None
-    spec.loader.exec_module(cli)  # type: ignore
-    runner: CliRunner = CliRunner()
-    noarg_result: Result = runner.invoke(cli.main)  # type: ignore
-    assert noarg_result.exit_code == 0
-    # noarg_output: str = ' '.join(
-    #     ['Replace this message by putting your code into', project_slug]
-    # )
-    # assert noarg_output in noarg_result.output
-    help_result = runner.invoke(cli.main, ['--help'])  # type: ignore
-    assert help_result.exit_code == 0
-    assert 'Show this message' in help_result.output
-
-
-def test_bake_with_click_console_script_cli(cookies: Cookies) -> None:
-    helper_bake_with_console_script_cli(cookies, {'command_line_interface': 'click'})
-
-
-def test_bake_with_argparse_console_script_cli(cookies: Cookies) -> None:
-    helper_bake_with_console_script_cli(cookies, {'command_line_interface': 'argparse'})
