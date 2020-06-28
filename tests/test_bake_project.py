@@ -38,25 +38,25 @@ import shlex
 import subprocess
 import sys
 from contextlib import contextmanager
-from importlib import util
-from importlib.machinery import ModuleSpec
 from types import ModuleType
 from typing import Any, Dict, Iterable, Iterator, Tuple
 
+from _pytest.capture import CaptureFixture
+
 # import yaml
 from click.testing import CliRunner
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
-from pytest import mark
+from pytest import mark, raises
 from pytest_cookies.plugin import Cookies, Result
 
-from helper_functions import bake_in_temp_dir, project_info, run_inside_dir
+from helper_functions import bake_in_temp_dir, get_cli, project_info, run_inside_dir
 
 
 def test_year_compute_in_license_file(cookies: Cookies) -> None:
     with bake_in_temp_dir(cookies) as result:
-        license_file_path: LocalPath = result.project.join('LICENSE')
+        license_file_path: LocalPath = result.project.join("LICENSE")
         now: datetime.datetime = datetime.datetime.now()
         assert str(now.year) in license_file_path.read()
 
@@ -68,35 +68,34 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
         assert result.exception is None
 
         found_toplevel_files = [f.basename for f in result.project.listdir()]
-        assert 'setup.py' in found_toplevel_files
-        assert 'tox.ini' in found_toplevel_files
-        assert 'tests' in found_toplevel_files
-        assert 'src' in found_toplevel_files
-        assert 'my_python_package' in os.listdir(
+        assert "setup.py" in found_toplevel_files
+        assert "tox.ini" in found_toplevel_files
+        assert "tests" in found_toplevel_files
+        assert "src" in found_toplevel_files
+        assert "my_python_package" in os.listdir(
             os.path.join(str(result.project), "src")
         )
 
 
 @mark.slow
+@mark.trylast
 @mark.parametrize(
-    "context", [{}, {'full_name': 'name "quote" name'}, {'full_name': "O'connor"}]
+    "context", [{}, {"full_name": 'name "quote" name'}, {"full_name": "O'connor"}]
 )
 def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
     """Ensure that a `full_name` with double quotes does not break setup.py"""
-    with bake_in_temp_dir(
-        cookies, extra_context={'full_name': 'name "quote" name'}
-    ) as result:
+    with bake_in_temp_dir(cookies, extra_context=context) as result:
         assert result.project.isdir()
-        test_file_path = result.project.join('tests/test_my_python_package.py')
+        test_file_path = result.project.join("tests/test_my_python_package.py")
         assert "import pytest" in test_file_path.read()
 
-        run_inside_dir('tox', str(result.project)) == 0
+        run_inside_dir("tox", str(result.project)) == 0
 
 
 def test_bake_without_author_file(cookies: Cookies) -> None:
-    with bake_in_temp_dir(cookies, extra_context={"create_author_file": 'n'}) as result:
+    with bake_in_temp_dir(cookies, extra_context={"create_author_file": "n"}) as result:
         found_toplevel_files = [f.basename for f in result.project.listdir()]
-        assert 'AUTHORS.rst' not in found_toplevel_files
+        assert "AUTHORS.rst" not in found_toplevel_files
         # doc_files = [f.basename for f in result.project.join('docs').listdir()]
         # assert 'authors.rst' not in doc_files
 
@@ -122,8 +121,8 @@ def test_bake_without_author_file(cookies: Cookies) -> None:
 @mark.parametrize(
     "license_info",
     [
-        ('MIT', 'MIT'),
-        ('Apache 2.0 License', 'Licensed under the Apache License, Version 2.0'),
+        ("MIT", "MIT"),
+        ("Apache 2.0 License", "Licensed under the Apache License, Version 2.0"),
     ],
 )
 def test_bake_selecting_license(
@@ -134,9 +133,9 @@ def test_bake_selecting_license(
     result: Result
 
     license, target_string = license_info
-    with bake_in_temp_dir(cookies, extra_context={'license': license}) as result:
-        assert target_string in result.project.join('LICENSE').read()
-        assert license in result.project.join('setup.py').read()
+    with bake_in_temp_dir(cookies, extra_context={"license": license}) as result:
+        assert target_string in result.project.join("LICENSE").read()
+        assert license in result.project.join("setup.py").read()
 
 
 def test_bake_other_license(cookies: Cookies) -> None:
@@ -145,9 +144,9 @@ def test_bake_other_license(cookies: Cookies) -> None:
         found_toplevel_files: Iterable[str] = [
             f.basename for f in result.project.listdir()
         ]
-        assert 'setup.py' in found_toplevel_files
-        assert 'LICENSE' not in found_toplevel_files
-        assert 'License' not in result.project.join('README.markdown').read()
+        assert "setup.py" in found_toplevel_files
+        assert "LICENSE" not in found_toplevel_files
+        assert "License" not in result.project.join("README.markdown").read()
 
 
 @mark.parametrize(
@@ -170,49 +169,43 @@ def test_bake_cli(cookies: Cookies, args: Tuple[Dict[str, str], bool]) -> None:
 
     setup_path: str = os.path.join(project_path, 'setup.py')
     with open(setup_path, 'r') as setup_file:
-        assert ('entry_points' in setup_file.read()) == is_present
-
-
-@given(args=st.lists(st.text(alphabet=st.characters(blacklist_characters=['-']))))
-def helper_args_cli(cli: ModuleType, args: Iterable[str]) -> None:
-    runner: CliRunner = CliRunner()
-    noarg_result: Result = runner.invoke(cli.main, args)  # type: ignore
-    try:
-        assert noarg_result.exit_code == 0
-    except AssertionError as e:
-        # print("=" * 80)
-        # print("Reached exception location")
-        # print("Args:", args)
-        # ClickException.show(str(e))
-        # print("=" * 80)
-        print(noarg_result.output)
-        raise e
-    assert str(tuple(args)) == noarg_result.output.strip()
+        assert ("entry_points" in setup_file.read()) == is_present
 
 
 @mark.hypothesis
-@mark.parametrize(
-    "context",
-    [{'command_line_interface': 'Click'}, {'command_line_interface': 'argparse'},],
-)
-def test_run_cli(cookies: Cookies, context: Dict[str, str]) -> None:
-    result: Result = cookies.bake(extra_context=context)
-    project_path, project_slug, project_dir = project_info(result)
-    module_path: str = os.path.join(project_dir, 'cli.py')
-    module_name: str = '.'.join([project_slug, 'cli'])
-    spec: ModuleSpec = util.spec_from_file_location(module_name, module_path)
-    cli: ModuleType = util.module_from_spec(spec)
-
-    assert spec.loader is not None
-    spec.loader.exec_module(cli)  # type: ignore
+def test_run_click_cli(cookies: Cookies) -> None:
+    cli: ModuleType = get_cli(cookies, {"command_line_interface": "Click"})
 
     runner: CliRunner = CliRunner()
-    noarg_result: Result = runner.invoke(cli.main)  # type: ignore
-    assert noarg_result.exit_code == 0
-    assert "()" == noarg_result.output.strip()
 
-    help_result = runner.invoke(cli.main, ['--help'])  # type: ignore
+    help_result = runner.invoke(cli.main, ["--help"])  # type: ignore
     assert help_result.exit_code == 0
-    assert 'Show this message' in help_result.output
+    assert "Show this message" in help_result.output
 
-    helper_args_cli(cli)
+    @given(st.lists(st.text(alphabet=st.from_regex("^[^-]{1,2}.*", fullmatch=True))))
+    @example([])
+    @example([''])
+    def helper_args_cli(args: Iterable[str]) -> None:
+        arg_result: Result = runner.invoke(cli.main, args)  # type: ignore
+        assert arg_result.exit_code == 0
+        assert str(tuple(args)) == arg_result.output.strip()
+
+    helper_args_cli()
+
+
+@mark.hypothesis
+def test_run_argparse_cli(cookies: Cookies, capsys: CaptureFixture) -> None:
+    cli: ModuleType = get_cli(cookies, {"command_line_interface": "Argparse"})
+
+    with raises(SystemExit):
+        cli.main(["--help"])  # type: ignore
+    assert "show this help message" in capsys.readouterr().out
+
+    @given(st.lists(st.text(alphabet=st.from_regex("^[^-]{1,2}.*", fullmatch=True))))
+    @example([])
+    @example([''])
+    def helper_args_cli(args: Iterable[str]) -> None:
+        cli.main(args)  # type: ignore
+        assert str(args) == capsys.readouterr().out.strip()
+
+    helper_args_cli()

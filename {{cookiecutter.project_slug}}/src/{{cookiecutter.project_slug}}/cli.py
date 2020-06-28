@@ -35,18 +35,19 @@ def main(args: Tuple[str]) -> None:
     click.echo(repr(args))
 {%- elif cookiecutter.command_line_interface == 'Argparse' %}
 
-parser = argparse.ArgumentParser(description='My python package.')
-parser.add_argument(
-    'args',
-    metavar='Arguments',
-    nargs=argparse.ZERO_OR_MORE,
-    help="Command line Arguments.",
-)
+def _construct_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description='My python package.')
+    parser.add_argument(
+        'args',
+        metavar='Arguments',
+        nargs=argparse.ZERO_OR_MORE,
+        help="Command line Arguments.",
+    )
+    return parser
 
 
 def main(args: Optional[Sequence[str]] = None) -> None:
-    arguments = parser.parse_args(args=args)
-    print(arguments.args)
+    print(_construct_parser().parse_args(args=args).args)
 {%- endif %}
 
 

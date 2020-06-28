@@ -6,6 +6,8 @@ import subprocess
 from contextlib import contextmanager
 from types import ModuleType
 from typing import Any, Dict, Iterator, Tuple
+from importlib.machinery import ModuleSpec
+from importlib import util
 
 # import yaml
 from cookiecutter.utils import rmtree
@@ -63,3 +65,17 @@ def project_info(result: Result) -> Tuple[str, str, str]:
     project_slug = os.path.split(project_path)[-1]
     project_dir = os.path.join(project_path, "src", project_slug)
     return project_path, project_slug, project_dir
+
+
+def get_cli(cookies: Cookies, context: Dict[str, str]) -> ModuleType:
+    result: Result = cookies.bake(extra_context=context)
+    project_path, project_slug, project_dir = project_info(result)
+    module_path: str = os.path.join(project_dir, 'cli.py')
+    module_name: str = '.'.join([project_slug, 'cli'])
+    spec: ModuleSpec = util.spec_from_file_location(module_name, module_path)
+    cli: ModuleType = util.module_from_spec(spec)
+
+    assert spec.loader is not None
+    spec.loader.exec_module(cli)  # type: ignore
+
+    return cli
