@@ -4,5 +4,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+{%- if cookiecutter.documentation_framework == "Sphinx" %}
+recommonmark = "*"
+# sphinx = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-rtd-theme = "*"
+{%- endif %}
 
 [packages]
