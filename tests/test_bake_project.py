@@ -39,7 +39,7 @@ import subprocess
 import sys
 from contextlib import contextmanager
 from types import ModuleType
-from typing import Any, Dict, Iterable, Iterator, Tuple
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
 
 from _pytest.capture import CaptureFixture
 
@@ -70,8 +70,9 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
         found_toplevel_files = [f.basename for f in result.project.listdir()]
         assert "setup.py" in found_toplevel_files
         assert "tox.ini" in found_toplevel_files
-        assert "tests" in found_toplevel_files
+        assert "docs" in found_toplevel_files
         assert "src" in found_toplevel_files
+        assert "tests" in found_toplevel_files
         assert "my_python_package" in os.listdir(
             os.path.join(str(result.project), "src")
         )
@@ -89,7 +90,7 @@ def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
         test_file_path = result.project.join("tests/test_my_python_package.py")
         assert "import pytest" in test_file_path.read()
 
-        run_inside_dir("tox", str(result.project)) == 0
+        assert run_inside_dir("tox", str(result.project)) == 0
 
 
 def test_bake_without_author_file(cookies: Cookies) -> None:
@@ -209,3 +210,110 @@ def test_run_argparse_cli(cookies: Cookies, capsys: CaptureFixture) -> None:
         assert str(args) == capsys.readouterr().out.strip()
 
     helper_args_cli()
+
+
+def test_bake_sphinx(cookies: Cookies) -> None:
+
+    result: Result
+    with bake_in_temp_dir(
+        cookies, extra_context={"documentation_framework": "Sphinx"}
+    ) as result:
+        project_path: str = project_info(result)[0]
+        root_files: Iterable[str] = os.listdir(project_path)
+
+        assert "Pipfile" in root_files
+        with open(os.path.join(project_path, "Pipfile"), 'r') as pipfile:
+            lines: Iterable[str] = pipfile.read().splitlines()
+            assert 'mkdocs = "*"' not in lines
+
+            assert 'sphinx = "*"' in lines
+            assert 'sphinx-autodoc-typehints = "*"' in lines
+            assert 'sphinx-rtd-theme = "*"' in lines
+
+        assert "docs" in root_files
+        assert "source" in os.listdir(os.path.join(project_path, "docs"))
+        docs_source_dir_name: str = os.path.join(project_path, "docs", "source")
+        docs_source_dir: Iterable[str] = os.listdir(docs_source_dir_name)
+
+        assert "index.rst" in docs_source_dir
+        assert "index.markdown" not in docs_source_dir
+
+        assert "conf.py" in docs_source_dir
+        with open(os.path.join(docs_source_dir_name, "conf.py"), 'r') as docs_setup:
+            lines = docs_setup.read().splitlines()
+
+            for extension in ["autodoc", "coverage", "viewcode", "napoleon"]:
+                assert next((s for s in lines if extension in s), None)
+
+            rtd_theme_init_line: Optional[str] = next(
+                (s for s in lines if "sphinx_autodoc_typehints" in s), None
+            )
+            rtd_theme_set_line: str = 'html_theme = "sphinx_rtd_theme"'
+            assert (
+                rtd_theme_init_line is not None
+                and rtd_theme_init_line != rtd_theme_set_line
+            )
+            assert rtd_theme_set_line in lines
+
+            assert next((s for s in lines if "sphinx_autodoc_typehints" in s), None)
+
+
+def test_bake_mkdocs(cookies: Cookies) -> None:
+
+    result: Result
+    with bake_in_temp_dir(
+        cookies, extra_context={"documentation_framework": "MkDocs"}
+    ) as result:
+        project_path: str = project_info(result)[0]
+        root_files: Iterable[str] = os.listdir(project_path)
+
+        assert "Pipfile" in root_files
+        with open(os.path.join(project_path, "Pipfile"), 'r') as pipfile:
+            lines: Iterable[str] = pipfile.read().splitlines()
+
+            assert 'sphinx = "*"' not in lines
+
+            assert 'mkdocs-awesome-pages-plugin = "*"' in lines
+            assert 'mkdocs = "*"' in lines
+            assert 'mkdocs-material = "*"' in lines
+            assert 'mkdocs-minify-plugin = "*"' in lines
+            assert 'Pygments = "*"' in lines
+
+        assert "docs" in root_files
+
+        docs_dir_name: str = os.path.join(project_path, "docs")
+        docs_dir: Iterable[str] = os.listdir(docs_dir_name)
+
+        assert "mkdocs.yml" in docs_dir
+        with open(os.path.join(docs_dir_name, "mkdocs.yml"), 'r') as docs_setup:
+            lines = docs_setup.read().splitlines()
+
+            for plugin in ["search", "minify", "awesome-pages", "codehilite"]:
+                assert next((s for s in lines if plugin in s), None)
+
+        assert "source" in docs_dir
+        docs_source_dir: Iterable[str] = os.listdir(
+            os.path.join(docs_dir_name, "source")
+        )
+
+        assert "conf.py" not in docs_source_dir
+        assert "index.rst" not in docs_source_dir
+        assert "index.markdown" in docs_source_dir
+
+
+def test_bake_no_docs(cookies: Cookies) -> None:
+
+    result: Result
+    with bake_in_temp_dir(
+        cookies, extra_context={"documentation_framework": "None"}
+    ) as result:
+        project_path: str = project_info(result)[0]
+        root_files: Iterable[str] = os.listdir(project_path)
+
+        assert "Pipfile" in root_files
+        with open(os.path.join(project_path, "Pipfile"), 'r') as pipfile:
+            lines: Iterable[str] = pipfile.read().splitlines()
+            assert 'mkdocs = "*"' not in lines
+            assert 'sphinx = "*"' not in lines
+
+        assert "docs" not in root_files

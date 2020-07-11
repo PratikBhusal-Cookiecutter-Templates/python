@@ -1,0 +1,32 @@
+site_name: {{cookiecutter.project_name}}
+site_author: {{cookiecutter.full_name}}
+site_dir: site
+docs_dir: source
+
+# nav:
+#     - API: mkapi/api/src/my_python_package
+
+theme:
+    name: material
+    highlightjs: false
+
+plugins:
+    - search
+    - minify:
+        minify_html: true
+        minify_js: true
+        htmlmin_opts:
+            remove_comments: true
+            remove_empty_space: true
+    - awesome-pages:
+            collapse_single_pages: true
+    # - mkapi:
+    #     src_dirs: [src/my_python_package]
+
+markdown_extensions:
+    - codehilite
+    - pymdownx.inlinehilite
+    # - pymdownx.arithmatex
+
+# extra_javascript:
+#     - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML

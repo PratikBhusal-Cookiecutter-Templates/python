@@ -6,9 +6,20 @@ verify_ssl = true
 [dev-packages]
 {%- if cookiecutter.documentation_framework == "Sphinx" %}
 recommonmark = "*"
-# sphinx = "*"
+sphinx = "*"
 sphinx-autodoc-typehints = "*"
 sphinx-rtd-theme = "*"
+{%- elif cookiecutter.documentation_framework == "MkDocs" %}
+Markdown = "*"
+Pygments = "*"
+mkdocs = "*"
+mkdocs-awesome-pages-plugin = "*"
+mkdocs-material = "*"
+mkdocs-minify-plugin = "*"
+pymdown-extensions = "*"
 {%- endif %}
 
 [packages]
+{%- if cookiecutter.command_line_interface == 'Click' %}
+click = "*"
+{%- endif %}
