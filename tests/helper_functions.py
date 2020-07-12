@@ -53,10 +53,10 @@ def run_inside_dir(command: str, dirpath: str) -> int:
         return subprocess.check_call(shlex.split(command))
 
 
-# def check_output_inside_dir(command, dirpath):
+# def check_output_inside_dir(command: str, dirpath: str) -> str:
 #     "Run a command from inside a given directory, returning the command output"
 #     with inside_dir(dirpath):
-#         return subprocess.check_output(shlex.split(command))
+#         return subprocess.check_output(shlex.split(command), text=True)
 
 
 def project_info(result: Result) -> Tuple[str, str, str]:

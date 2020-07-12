@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
 import shutil
-from glob import iglob
 from os import path, remove
 
 PROJECT_DIRECTORY: str = path.realpath(path.curdir)
@@ -32,6 +31,23 @@ if __name__ == "__main__":
         if "Sphinx" == "{{ cookiecutter.documentation_framework }}":
             extension = "markdown"
             remove_file(path.join("docs", "mkdocs.yml"))
+
+            from html import unescape as unescape_chars
+
+            full_name: str = unescape_chars("{{ cookiecutter.full_name | escape }}")
+
+            if '"' in full_name:
+                import fileinput
+                import sys
+
+                with fileinput.input(
+                    path.join(PROJECT_DIRECTORY, "docs", "source", "conf.py"),
+                    inplace=True,
+                ) as f:
+                    for line in f:
+                        sys.stdout.write(
+                            line.replace(f'"{full_name}"', f"'{full_name}'")
+                        )
         elif "MkDocs" == "{{ cookiecutter.documentation_framework }}":
             extension = "rst"
             remove_file(path.join("docs", "source", "conf.py"))
@@ -40,6 +56,8 @@ if __name__ == "__main__":
             #         path.join(PROJECT_DIRECTORY, "docs", "source", folder),
             #         ignore_errors=True,
             #     )
+
+        from glob import iglob
 
         for file_path in iglob(
             path.join(PROJECT_DIRECTORY, "docs", "source", "**/*." + extension),

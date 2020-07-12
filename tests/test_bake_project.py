@@ -45,13 +45,12 @@ from _pytest.capture import CaptureFixture
 
 # import yaml
 from click.testing import CliRunner
+from helper_functions import bake_in_temp_dir, get_cli, project_info, run_inside_dir
 from hypothesis import example, given
 from hypothesis import strategies as st
-from py._path.local import LocalPath  # Decprecated: replace with pathlib later.
+from py._path.local import LocalPath  # Decprecated(?): replace with pathlib later.
 from pytest import mark, raises
 from pytest_cookies.plugin import Cookies, Result
-
-from helper_functions import bake_in_temp_dir, get_cli, project_info, run_inside_dir
 
 
 def test_year_compute_in_license_file(cookies: Cookies) -> None:
@@ -76,21 +75,6 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
         assert "my_python_package" in os.listdir(
             os.path.join(str(result.project), "src")
         )
-
-
-@mark.slow
-@mark.trylast
-@mark.parametrize(
-    "context", [{}, {"full_name": 'name "quote" name'}, {"full_name": "O'connor"}]
-)
-def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
-    """Ensure that a `full_name` with double quotes does not break setup.py"""
-    with bake_in_temp_dir(cookies, extra_context=context) as result:
-        assert result.project.isdir()
-        test_file_path = result.project.join("tests/test_my_python_package.py")
-        assert "import pytest" in test_file_path.read()
-
-        assert run_inside_dir("tox", str(result.project)) == 0
 
 
 def test_bake_without_author_file(cookies: Cookies) -> None:
@@ -317,3 +301,23 @@ def test_bake_no_docs(cookies: Cookies) -> None:
             assert 'sphinx = "*"' not in lines
 
         assert "docs" not in root_files
+
+
+@mark.slow
+@mark.parametrize(
+    "context",
+    [
+        {},
+        {"full_name": 'name "quote" name', "documentation_framework": "Sphinx"},
+        {"full_name": "O'connor", "documentation_framework": "Sphinx"},
+        {"full_name": 'name "quote" name', "documentation_framework": "MkDocs"},
+        {"full_name": "O'connor", "documentation_framework": "MkDocs"},
+    ],
+)
+def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
+    with bake_in_temp_dir(cookies, extra_context=context) as result:
+        assert result.project.isdir()
+        test_file_path = result.project.join("tests/test_my_python_package.py")
+        assert "import pytest" in test_file_path.read()
+
+        assert run_inside_dir("tox", str(result.project)) == 0
