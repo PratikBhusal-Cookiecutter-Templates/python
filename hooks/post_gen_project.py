@@ -20,6 +20,9 @@ if __name__ == "__main__":
         remove_file(path.join("src", "{{ cookiecutter.project_slug }}", "cli.py"))
         remove_file(path.join("src", "{{ cookiecutter.project_slug }}", "__main__.py"))
 
+    if "{{ cookiecutter.have_tests }}" != "y":
+        shutil.rmtree(path.join(PROJECT_DIRECTORY, "tests"), ignore_errors=True)
+
     if "Other" == "{{ cookiecutter.license }}":
         remove_file("LICENSE")
 
