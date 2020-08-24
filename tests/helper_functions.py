@@ -4,10 +4,10 @@ import os
 import shlex
 import subprocess
 from contextlib import contextmanager
+from importlib import util
+from importlib.machinery import ModuleSpec
 from types import ModuleType
 from typing import Any, Dict, Iterator, Tuple
-from importlib.machinery import ModuleSpec
-from importlib import util
 
 # import yaml
 from cookiecutter.utils import rmtree
@@ -53,10 +53,10 @@ def run_inside_dir(command: str, dirpath: str) -> int:
         return subprocess.check_call(shlex.split(command))
 
 
-# def check_output_inside_dir(command: str, dirpath: str) -> str:
-#     "Run a command from inside a given directory, returning the command output"
-#     with inside_dir(dirpath):
-#         return subprocess.check_output(shlex.split(command), text=True)
+def check_output_inside_dir(command: str, dirpath: str) -> str:
+    "Run a command from inside a given directory, returning the command output"
+    with inside_dir(dirpath):
+        return subprocess.check_output(shlex.split(command), text=True)
 
 
 def project_info(result: Result) -> Tuple[str, str, str]:

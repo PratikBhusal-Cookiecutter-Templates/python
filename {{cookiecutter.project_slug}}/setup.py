@@ -41,6 +41,9 @@ setup(
 {%- if cookiecutter.command_line_interface|lower == "click" %}
     install_requires=["click"],
 {%- endif %}
+{%- if cookiecutter.have_tests == "y" %}
+    test_suite="tests",
+{%- endif %}
     author="",
     author_email='',
     description="",
@@ -53,7 +56,6 @@ setup(
     packages=find_packages("src"),
     py_modules=[splitext(basename(path))[0] for path in iglob("src/*.py")],
     python_requires=">=3.6",
-    test_suite="tests",
     url="",
     version="0.0.0",
     zip_safe=False,

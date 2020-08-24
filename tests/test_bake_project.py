@@ -45,7 +45,13 @@ from _pytest.capture import CaptureFixture
 
 # import yaml
 from click.testing import CliRunner
-from helper_functions import bake_in_temp_dir, get_cli, project_info, run_inside_dir
+from helper_functions import (
+    bake_in_temp_dir,
+    check_output_inside_dir,
+    get_cli,
+    project_info,
+    run_inside_dir,
+)
 from hypothesis import example, given
 from hypothesis import strategies as st
 from py._path.local import LocalPath  # Decprecated(?): replace with pathlib later.
@@ -310,10 +316,99 @@ def test_bake_no_docs(cookies: Cookies) -> None:
         {"full_name": "O'connor", "documentation_framework": "MkDocs"},
     ],
 )
-def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
+def test_bake_and_generate_docs(cookies: Cookies, context: Dict[str, str]) -> None:
     with bake_in_temp_dir(cookies, extra_context=context) as result:
         assert result.project.isdir()
         test_file_path = result.project.join("tests/test_my_python_package.py")
         assert "import pytest" in test_file_path.read()
 
-        assert run_inside_dir("tox", str(result.project)) == 0
+        assert run_inside_dir("tox -e docs", str(result.project)) == 0
+
+
+def test_bake_no_test_framework(cookies: Cookies) -> None:
+    result: Result
+    with bake_in_temp_dir(cookies, extra_context={"have_tests": "n"}) as result:
+        project_path: str = project_info(result)[0]
+        root_files: Iterable[str] = set(os.listdir(project_path))
+
+        assert "pytest.ini" not in root_files
+
+        assert "tests" not in root_files
+
+        assert "src" in root_files
+        assert "conftest.py" not in os.listdir(os.path.join(project_path, "src"))
+
+        assert "mypy.ini" in root_files
+        with open(os.path.join(project_path, "mypy.ini"), 'r') as mypy_config:
+            assert not next(
+                (s for s in mypy_config.read().splitlines() if "mypy-pytest" in s), None
+            )
+
+        assert "setup.py" in root_files
+        with open(os.path.join(project_path, "setup.py"), 'r') as setup_config:
+            assert not next(
+                (
+                    s
+                    for s in setup_config.read().splitlines()
+                    if 'test_suite="tests"' in s
+                ),
+                None,
+            )
+
+        assert "Pipfile" in root_files
+        with open(os.path.join(project_path, "Pipfile"), 'r') as pipfile:
+            lines: Iterable[str] = set(pipfile.read().splitlines())
+            assert 'pytest = "*"' not in lines
+            assert 'hypothesis = "*"' not in lines
+            assert 'pytest-cov = "*"' not in lines
+
+
+@mark.slow
+def test_bake_and_run_tests(cookies: Cookies) -> None:
+    result: Result
+    with bake_in_temp_dir(cookies, extra_context={}) as result:
+        project_path: str = project_info(result)[0]
+        root_files: Iterable[str] = set(os.listdir(project_path))
+
+        assert "pytest.ini" in root_files
+
+        assert "tests" in root_files
+        assert "test_my_python_package.py" in os.listdir(
+            os.path.join(project_path, "tests")
+        )
+
+        assert "src" in root_files
+        assert "conftest.py" in os.listdir(os.path.join(project_path, "src"))
+
+        assert "mypy.ini" in root_files
+        with open(os.path.join(project_path, "mypy.ini"), 'r') as mypy_config:
+            assert next(
+                (s for s in mypy_config.read().splitlines() if "mypy-pytest" in s), None
+            )
+
+        assert "setup.py" in root_files
+        with open(os.path.join(project_path, "setup.py"), 'r') as setup_config:
+            assert next(
+                (
+                    s
+                    for s in setup_config.read().splitlines()
+                    if 'test_suite="tests"' in s
+                ),
+                None,
+            )
+
+        assert "Pipfile" in root_files
+        with open(os.path.join(project_path, "Pipfile"), 'r') as pipfile:
+            lines: Iterable[str] = set(pipfile.read().splitlines())
+            assert 'pytest = "*"' in lines
+            assert 'hypothesis = "*"' in lines
+            assert 'pytest-cov = "*"' in lines
+
+        tox_envs: str = ','.join(
+            env
+            for env in check_output_inside_dir(
+                "tox --listenvs", str(result.project)
+            ).split()
+            if env.startswith("py3")
+        )
+        assert run_inside_dir("tox -e " + tox_envs, str(result.project)) == 0
