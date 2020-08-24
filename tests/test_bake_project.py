@@ -210,8 +210,7 @@ def test_bake_sphinx(cookies: Cookies) -> None:
             lines: Iterable[str] = pipfile.read().splitlines()
             assert 'mkdocs = "*"' not in lines
 
-            assert 'sphinx = "*"' in lines
-            assert 'sphinx-autodoc-typehints = "*"' in lines
+            assert 'sphinx = ">=3.0"' in lines
             assert 'sphinx-rtd-theme = "*"' in lines
 
         assert "docs" in root_files
@@ -230,16 +229,13 @@ def test_bake_sphinx(cookies: Cookies) -> None:
                 assert next((s for s in lines if extension in s), None)
 
             rtd_theme_init_line: Optional[str] = next(
-                (s for s in lines if "sphinx_autodoc_typehints" in s), None
+                (s for s in lines if "sphinx_rtd_theme" in s), None
             )
-            rtd_theme_set_line: str = 'html_theme = "sphinx_rtd_theme"'
-            assert (
-                rtd_theme_init_line is not None
-                and rtd_theme_init_line != rtd_theme_set_line
-            )
-            assert rtd_theme_set_line in lines
+            assert rtd_theme_init_line is not None
 
-            assert next((s for s in lines if "sphinx_autodoc_typehints" in s), None)
+            rtd_theme_set_line: str = 'html_theme = "sphinx_rtd_theme"'
+            assert rtd_theme_init_line != rtd_theme_set_line
+            assert rtd_theme_set_line in lines
 
 
 def test_bake_mkdocs(cookies: Cookies) -> None:
@@ -255,7 +251,7 @@ def test_bake_mkdocs(cookies: Cookies) -> None:
         with open(os.path.join(project_path, "Pipfile"), 'r') as pipfile:
             lines: Iterable[str] = pipfile.read().splitlines()
 
-            assert 'sphinx = "*"' not in lines
+            assert 'sphinx = ">=3.0"' not in lines
 
             assert 'mkdocs-awesome-pages-plugin = "*"' in lines
             assert 'mkdocs = "*"' in lines
