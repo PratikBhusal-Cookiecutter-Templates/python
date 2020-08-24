@@ -36,7 +36,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme',
-    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,3 +61,7 @@ html_theme = "sphinx_rtd_theme"
 
 
 # -- Extension configuration -------------------------------------------------
+
+
+# autodoc
+autodoc_typehints: str = "description"
