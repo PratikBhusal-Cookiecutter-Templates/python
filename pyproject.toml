@@ -1,3 +1,30 @@
+[tool.poetry]
+name = "python-cookiecutter-template"
+version = "0.1.0"
+description = "This is a basic python template. Hopefully it works out well enough for my use case(s)."
+authors = ["PratikBhusal <PratikBhusal@users.noreply.github.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+# nox = "*"
+# recommonmark = "*"
+# sphinx-rtd-theme = "*"
+# nox = "^2022.11.21"
+# recommonmark = "^0.7.1"
+# sphinx-rtd-theme = "^1.2.0"
+pytest-cookies = "^0.7.0"
+tox = "^4.4.8"
+mypy = "^1.1.1"
+hypothesis = "^6.70.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length = 88
 skip-string-normalization = true

@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from importlib import util
 from importlib.machinery import ModuleSpec
 from types import ModuleType
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any, Iterator, cast
 
 # import yaml
 from cookiecutter.utils import rmtree
@@ -29,7 +29,7 @@ def inside_dir(dirpath: str) -> Iterator[None]:
 
 
 @contextmanager
-def bake_in_temp_dir(cookies: Cookies, *args: Any, **kwargs: Dict[str, str]) -> Result:
+def bake_in_temp_dir(cookies: Cookies, *args: Any, **kwargs: dict[str, str]) -> Result:
     """
     Delete the temporal directory that is created when executing the tests
     :param cookies: pytest_cookies.Cookies,
@@ -59,7 +59,7 @@ def check_output_inside_dir(command: str, dirpath: str) -> str:
         return subprocess.check_output(shlex.split(command), text=True)
 
 
-def project_info(result: Result) -> Tuple[str, str, str]:
+def project_info(result: Result) -> tuple[str, str, str]:
     """Get toplevel dir, project_slug, and project dir from baked cookies"""
     project_path = str(result.project)
     project_slug = os.path.split(project_path)[-1]
@@ -67,15 +67,15 @@ def project_info(result: Result) -> Tuple[str, str, str]:
     return project_path, project_slug, project_dir
 
 
-def get_cli(cookies: Cookies, context: Dict[str, str]) -> ModuleType:
+def get_cli(cookies: Cookies, context: dict[str, str]) -> ModuleType:
     result: Result = cookies.bake(extra_context=context)
     project_path, project_slug, project_dir = project_info(result)
     module_path: str = os.path.join(project_dir, 'cli.py')
     module_name: str = '.'.join([project_slug, 'cli'])
-    spec: ModuleSpec = util.spec_from_file_location(module_name, module_path)
+    spec: ModuleSpec = cast(ModuleSpec, util.spec_from_file_location(module_name, module_path))
     cli: ModuleType = util.module_from_spec(spec)
 
     assert spec.loader is not None
-    spec.loader.exec_module(cli)  # type: ignore
+    spec.loader.exec_module(cli)
 
     return cli
