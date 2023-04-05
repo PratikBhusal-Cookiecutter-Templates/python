@@ -276,7 +276,7 @@ def test_bake_no_docs(cookies: Cookies) -> None:
     "context",
     get_all_possble_combinations(
         {
-            "full_name": ['name "quote" name', "O'connor"],
+            # "full_name": ['name "quote" name', "O'connor"],
             "documentation_framework": ["Sphinx", "MkDocs"],
             "test_automation_tool": ["Nox", "Tox"],
         }

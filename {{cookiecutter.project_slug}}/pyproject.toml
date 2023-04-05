@@ -1,3 +1,22 @@
+[tool.poetry]
+name = "{{cookiecutter.project_slug}}"
+version = "{{cookiecutter.version}}"
+description = "{{cookiecutter.project_short_description}}"
+authors = ["{{cookiecutter.github_username}}"]
+readme = "README.markdown"
+
+[tool.poetry.dependencies]
+python = ">=3.7,<4.0"
+
+
+[tool.poetry.group.dev.dependencies]
+tox = "^4.4.8"
+nox = "^2022.11.21"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length = 88
 skip-string-normalization = true
