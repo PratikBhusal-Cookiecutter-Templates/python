@@ -23,6 +23,11 @@ mkdocs-material = "*"
 mkdocs-minify-plugin = "*"
 pymdown-extensions = "*"
 {%- endif %}
+{%- if cookiecutter.test_automation_tool == "Tox" %}
+tox = "*"
+{%- elif cookiecutter.test_automation_tool == "Nox" %}
+nox = "*"
+{%- endif %}
 
 [packages]
 {%- if cookiecutter.command_line_interface == 'Click' %}

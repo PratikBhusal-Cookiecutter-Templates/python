@@ -15,13 +15,14 @@ from click.testing import CliRunner
 from helper_functions import (
     bake_in_temp_dir,
     check_output_inside_dir,
+    get_all_possble_combinations,
     get_cli,
     project_info,
     run_inside_dir,
 )
 from hypothesis import example, given
 from hypothesis import strategies as st
-from _pytest._py.path import LocalPath # Decprecated(?): replace with pathlib later.
+from _pytest._py.path import LocalPath  # Decprecated(?): replace with pathlib later.
 from pytest import mark, raises
 from pytest_cookies.plugin import Cookies, Result
 
@@ -41,7 +42,7 @@ def test_bake_with_defaults(cookies: Cookies) -> None:
 
         found_toplevel_files = [f.basename for f in result.project.listdir()]
         assert "setup.py" in found_toplevel_files
-        assert "tox.ini" in found_toplevel_files
+        assert "noxfile.py" in found_toplevel_files
         assert "docs" in found_toplevel_files
         assert "src" in found_toplevel_files
         assert "tests" in found_toplevel_files
@@ -171,7 +172,6 @@ def test_run_argparse_cli(cookies: Cookies, capsys: CaptureFixture[str]) -> None
 
 
 def test_bake_sphinx(cookies: Cookies) -> None:
-
     result: Result
     with bake_in_temp_dir(
         cookies, extra_context={"documentation_framework": "Sphinx"}
@@ -213,7 +213,6 @@ def test_bake_sphinx(cookies: Cookies) -> None:
 
 
 def test_bake_mkdocs(cookies: Cookies) -> None:
-
     result: Result
     with bake_in_temp_dir(
         cookies, extra_context={"documentation_framework": "MkDocs"}
@@ -256,7 +255,6 @@ def test_bake_mkdocs(cookies: Cookies) -> None:
 
 
 def test_bake_no_docs(cookies: Cookies) -> None:
-
     result: Result
     with bake_in_temp_dir(
         cookies, extra_context={"documentation_framework": "None"}
@@ -276,13 +274,13 @@ def test_bake_no_docs(cookies: Cookies) -> None:
 @mark.slow
 @mark.parametrize(
     "context",
-    [
-        {},
-        {"full_name": 'name "quote" name', "documentation_framework": "Sphinx"},
-        {"full_name": "O'connor", "documentation_framework": "Sphinx"},
-        {"full_name": 'name "quote" name', "documentation_framework": "MkDocs"},
-        {"full_name": "O'connor", "documentation_framework": "MkDocs"},
-    ],
+    get_all_possble_combinations(
+        {
+            "full_name": ['name "quote" name', "O'connor"],
+            "documentation_framework": ["Sphinx", "MkDocs"],
+            "test_automation_tool": ["Nox", "Tox"],
+        }
+    ),
 )
 def test_bake_and_generate_docs(cookies: Cookies, context: Dict[str, str]) -> None:
     with bake_in_temp_dir(cookies, extra_context=context) as result:
@@ -290,7 +288,13 @@ def test_bake_and_generate_docs(cookies: Cookies, context: Dict[str, str]) -> No
         test_file_path = result.project.join("tests/test_my_python_package.py")
         assert "import pytest" in test_file_path.read()
 
-        assert run_inside_dir("tox -e docs", str(result.project)) == 0
+        assert (
+            run_inside_dir(
+                f"{context['test_automation_tool'].lower()} -e docs",
+                str(result.project),
+            )
+            == 0
+        )
 
 
 def test_bake_no_test_framework(cookies: Cookies) -> None:
@@ -332,9 +336,16 @@ def test_bake_no_test_framework(cookies: Cookies) -> None:
 
 
 @mark.slow
-def test_bake_and_run_tests(cookies: Cookies) -> None:
-    result: Result
-    with bake_in_temp_dir(cookies, extra_context={}) as result:
+@mark.parametrize(
+    "context",
+    get_all_possble_combinations(
+        {
+            "test_automation_tool": ["Nox", "Tox"],
+        }
+    ),
+)
+def test_bake_and_run_tests(cookies: Cookies, context: Dict[str, str]) -> None:
+    def assert_testable(result: Result) -> None:
         project_path: str = project_info(result)[0]
         root_files: Iterable[str] = set(os.listdir(project_path))
 
@@ -372,11 +383,17 @@ def test_bake_and_run_tests(cookies: Cookies) -> None:
             assert 'hypothesis = "*"' in lines
             assert 'pytest-cov = "*"' in lines
 
-        tox_envs: str = ','.join(
-            env
-            for env in check_output_inside_dir(
-                "tox --listenvs", str(result.project)
-            ).split()
-            if env.startswith("py3")
-        )
-        assert run_inside_dir("tox -e " + tox_envs, str(result.project)) == 0
+    with bake_in_temp_dir(cookies, extra_context=context) as result:
+        assert_testable(result)
+
+        if context["test_automation_tool"] == "Tox":
+            tox_envs: str = ','.join(
+                env
+                for env in check_output_inside_dir(
+                    "tox --listenvs", str(result.project)
+                ).split()
+                if env.startswith("py3")
+            )
+            assert run_inside_dir("tox -e " + tox_envs, str(result.project)) == 0
+        elif context["test_automation_tool"] == "Nox":
+            assert run_inside_dir("nox --sessions test", str(result.project)) == 0

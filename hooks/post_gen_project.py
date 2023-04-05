@@ -16,6 +16,11 @@ if __name__ == "__main__":
     #     remove_file("AUTHORS.rst")
     #     remove_file("docs/authors.rst")
 
+    if "Nox" in "{{ cookiecutter.test_automation_tool }}":
+        remove_file("tox.ini")
+    else:
+        remove_file("noxfile.py")
+
     if "None" in "{{ cookiecutter.command_line_interface }}":
         remove_file(path.join("src", "{{ cookiecutter.project_slug }}", "cli.py"))
         remove_file(path.join("src", "{{ cookiecutter.project_slug }}", "__main__.py"))

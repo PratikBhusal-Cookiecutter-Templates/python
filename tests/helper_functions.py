@@ -8,6 +8,7 @@ from importlib import util
 from importlib.machinery import ModuleSpec
 from types import ModuleType
 from typing import Any, Iterator, cast
+from itertools import product
 
 # import yaml
 from cookiecutter.utils import rmtree
@@ -67,12 +68,19 @@ def project_info(result: Result) -> tuple[str, str, str]:
     return project_path, project_slug, project_dir
 
 
+def get_all_possble_combinations(options: dict[str, Any]) -> list[dict[str, Any]]:
+    keys, values = zip(*options.items())
+    return [dict(zip(keys, v)) for v in product(*values)]
+
+
 def get_cli(cookies: Cookies, context: dict[str, str]) -> ModuleType:
     result: Result = cookies.bake(extra_context=context)
     project_path, project_slug, project_dir = project_info(result)
     module_path: str = os.path.join(project_dir, 'cli.py')
     module_name: str = '.'.join([project_slug, 'cli'])
-    spec: ModuleSpec = cast(ModuleSpec, util.spec_from_file_location(module_name, module_path))
+    spec: ModuleSpec = cast(
+        ModuleSpec, util.spec_from_file_location(module_name, module_path)
+    )
     cli: ModuleType = util.module_from_spec(spec)
 
     assert spec.loader is not None

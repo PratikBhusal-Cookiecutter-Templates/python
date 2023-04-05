@@ -9,6 +9,7 @@
   "have_tests": "y",
   "documentation_framework": ["Sphinx", "MkDocs", "None"],
   "command_line_interface": ["Click", "Argparse", "None"],
+  "test_automation_tool": ["Nox", "Tox"],
   "create_author_file": "y",
   "license": ["MIT License", "Apache 2.0 License", "Other"]
 }
